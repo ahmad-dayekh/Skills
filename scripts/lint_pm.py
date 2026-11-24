@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Checks the PM guide written with the mx-pm-guide skill.
+r"""Checks the PM guide written with the mx-pm-guide skill.
 
   docs/pm/*.md        plain English, every rule tagged and traceable
   docs/rules/*.md     every rule has its required fields
   docs/evidence/*.md  every query has a result and a run date
 
-Run from the repository root:
+Run from the repository root (cited DEV\ files are checked relative to it):
 
-  python .github/skills/mx-pm-guide/scripts/lint_pm.py
-  python .github/skills/mx-pm-guide/scripts/lint_pm.py --coverage path/to/list_fix.txt docs/rules/fix.md
+  python .github\skills\mx-pm-guide\scripts\lint_pm.py
+  python .github\skills\mx-pm-guide\scripts\lint_pm.py --coverage docs\rules\fix.programs.txt docs\rules\fix.md
 
 Exit code 1 when there is at least one ERROR.
 """
@@ -19,6 +19,7 @@ import re
 import sys
 from pathlib import Path
 
+PREFIXES = {"API", "DEFECT", "DEVPLAN", "FIX", "JIRA", "MR", "NOTIF", "RELEASE", "SMART", "VPLAN"}
 RULE_ID = r"[A-Z]{2,8}-\d{3}"
 QUERY_ID = r"Q-[A-Z]{2,8}-\d{3}-[a-z]"
 CONFIDENCE = ("Verified", "Code only", "Inferred", "Never happens")
@@ -36,6 +37,8 @@ FENCE = re.compile(r"^\s*(```+|~~~+)\s*([\w-]*)")
 FIELD = re.compile(r"^\s*-\s+\*\*([A-Za-z ]+):\*\*\s*(.*)$")
 DATE = re.compile(r"\b20\d\d-\d\d-\d\d\b")
 LINK_TARGET = re.compile(r"\]\([^)]*\)")
+CITED = re.compile(r"(DEV[\\/][^\s`'\";,|()]+\.\w+)`?\s*(?:L(\d+)(?:\s*[-–—]\s*L?(\d+))?)?")
+LIST_PATH = re.compile(r"[\w.$-]*[\\/][^\s\[\]`'\";,|()]+\.\w+")
 
 JARGON = [
     (re.compile(r"\b[A-Z][A-Z0-9]*_[A-Z0-9_]*[A-Z0-9]\b"),
@@ -87,7 +90,33 @@ def read(path: Path) -> str:
     return raw.decode("utf-8-sig", errors="replace")
 
 
-def parse_rules(path: Path, rep: Report, all_rules: dict, query_refs: list) -> None:
+LINE_COUNTS: dict = {}
+
+
+def check_code_field(path: Path, rep: Report, rid: str, number: int, value: str, check_files: bool) -> None:
+    cited = list(CITED.finditer(value))
+    if not cited:
+        rep.error(path, number, f"{rid}: Code must cite at least one full path under DEV\\")
+    if "…" in value or "..." in value:
+        rep.warn(path, number, f"{rid}: abbreviated path in Code: write full paths")
+    if not check_files:
+        return
+    for hit in cited:
+        cited_path = Path(hit.group(1).replace("\\", "/"))
+        if not cited_path.is_file():
+            rep.error(path, number, f"{rid}: cited file not found: {hit.group(1)}")
+            continue
+        if hit.group(2):
+            start = int(hit.group(2))
+            end = int(hit.group(3) or start)
+            if cited_path not in LINE_COUNTS:
+                LINE_COUNTS[cited_path] = len(read(cited_path).splitlines())
+            count = LINE_COUNTS[cited_path]
+            if start < 1 or end < start or end > count:
+                rep.error(path, number, f"{rid}: L{start}-{end} is outside {hit.group(1)} ({count} lines)")
+
+
+def parse_rules(path: Path, rep: Report, all_rules: dict, query_refs: list, check_files: bool) -> None:
     lines = read(path).splitlines()
     state = {"id": None, "start": 0, "fields": {}}
 
@@ -100,6 +129,8 @@ def parse_rules(path: Path, rep: Report, all_rules: dict, query_refs: list) -> N
         missing = [f for f in ("Trigger", "Effect", "Code", "Confidence") if f not in fields]
         if missing:
             rep.error(path, start, f"{rid}: missing {', '.join(missing)}")
+        if "Code" in fields:
+            check_code_field(path, rep, rid, fields["Code"][0], fields["Code"][1], check_files)
         if "Confidence" in fields:
             value = fields["Confidence"][1].strip()
             level = next((c for c in CONFIDENCE if value.startswith(c)), None)
@@ -122,6 +153,8 @@ def parse_rules(path: Path, rep: Report, all_rules: dict, query_refs: list) -> N
                     rep.error(path, number, f"duplicate rule ID {rid} (also at {all_rules[rid]})")
                 else:
                     all_rules[rid] = f"{path.name}:{number}"
+                if rid.split("-")[0] not in PREFIXES:
+                    rep.warn(path, number, f"{rid}: unknown prefix (use one of {', '.join(sorted(PREFIXES))})")
                 state["id"] = rid
             continue
         if state["id"]:
@@ -225,26 +258,46 @@ def check_guide(path: Path, rep: Report, known_rules: dict) -> None:
                     rep.warn(path, number, f"sentence of {words} words: split it")
 
 
-def program_of(line: str) -> str:
-    tokens = line.split()
-    return next((t for t in tokens if t.lower().endswith(".pcode")), tokens[0])
-
-
 def normalise(text: str) -> str:
     return text.replace("/", "\\").lower()
 
 
+def coverage_section(rules_path: Path) -> str | None:
+    """Text of the '## Coverage' section of a rules file, or None if there is none."""
+    section, inside, found = [], False, False
+    for line in read(rules_path).splitlines():
+        heading = re.match(r"^(#{1,6})\s+(.*)", line)
+        if heading:
+            inside = len(heading.group(1)) == 2 and heading.group(2).strip().lower().startswith("coverage")
+            found = found or inside
+            continue
+        if inside:
+            section.append(line)
+    return "\n".join(section) if found else None
+
+
 def check_coverage(list_path: Path, rules_path: Path, rep: Report) -> None:
+    """Every file path in the list (e.g. saved output of find.py domain) must be in the rules file's Coverage table."""
     if not list_path.is_file() or not rules_path.is_file():
         rep.error(list_path, 0, f"coverage: file not found ({list_path} or {rules_path})")
         return
-    rules_text = normalise(read(rules_path))
+    section = coverage_section(rules_path)
+    if section is None:
+        rep.error(rules_path, 1, "no '## Coverage' section")
+        return
+    rules_text = normalise(section)
+    programs = 0
     for number, line in enumerate(read(list_path).splitlines(), 1):
-        if not line.strip() or line.lstrip().startswith("#"):
+        if line.lstrip().startswith("#"):
             continue
-        program = program_of(line.strip())
-        if normalise(program) not in rules_text:
-            rep.error(list_path, number, f"not in the coverage table of {rules_path.name}: {program}")
+        hit = LIST_PATH.search(line)
+        if not hit:
+            continue
+        programs += 1
+        if normalise(hit.group(0)) not in rules_text:
+            rep.error(list_path, number, f"not in the coverage table of {rules_path.name}: {hit.group(0)}")
+    if programs == 0:
+        rep.error(list_path, 0, "coverage: no file paths found in the list")
 
 
 def main() -> int:
@@ -255,6 +308,8 @@ def main() -> int:
     parser.add_argument("--coverage", nargs=2, action="append", default=[],
                         metavar=("PROGRAM_LIST", "RULES_FILE"),
                         help="check every program of the list appears in the rules file (repeatable)")
+    parser.add_argument("--no-file-check", action="store_true",
+                        help="don't check that files cited in Code exist under DEV\\ (for running outside the repo)")
     args = parser.parse_args()
 
     docs = Path(args.docs)
@@ -267,7 +322,7 @@ def main() -> int:
     query_refs: list = []
     all_queries: dict = {}
     for path in sorted((docs / "rules").glob("*.md")):
-        parse_rules(path, rep, all_rules, query_refs)
+        parse_rules(path, rep, all_rules, query_refs, not args.no_file_check)
     for path in sorted((docs / "evidence").glob("*.md")):
         parse_evidence(path, rep, all_queries)
     for path, number, query in query_refs:
