@@ -1,0 +1,17 @@
+Read docs\progress.md first, including its standing rules. Restructure docs\pm\mr.md so a PM can follow it by what people do, instead of by where the code runs. Move and merge content only: don't change what any sentence claims, and keep every tag and rule ID.
+
+New order:
+1. In short: what a merge request is, who raises it, who decides, what it connects to.
+2. Life cycle: the status diagram and table, including the old statuses that now show blank.
+3. Raising a merge request: on the form, from the defect page, with the bulk insert, through the API, and the merge tool (retired since 16 Oct 2026). What is checked, what is filled in automatically, what happens next.
+4. Reviewing and deciding: accepting, refusing and cancelling on the form or in the Smart Report (including the bulk accept), exceptions, what gets locked afterwards, re-issuing.
+5. Changing merge requests in bulk: bulk update and bulk move, what they change and what they don't do (no emails, no history).
+6. When the defect changes: cancelling a defect, dev plans, related defects.
+7. Emails: every email in one place: when it is sent, to whom, what it says.
+8. Other systems: Jira, GQAF, the API: what is exchanged and when.
+9. Who can do what: one table by role.
+10. Known issues, most impactful first.
+11. Rules that no longer apply.
+12. Open questions, grouped under the same headings as above, the ones that affect what users can do first.
+2. Life cycle: remove the current diagram. Keep the status table (each status as shown on screen, what it means, who sets it, what can happen next), including the old statuses that now show blank. Add a small diagram of the main path only: at most 6 statuses, and only the moves that happened more than 100 times in the last 12 months, using the status-change counts in the evidence (run that query again if they aren't there). Rare and old moves stay in the table.
+Within each section, order the rules by how often they apply, using the counts already in the rules and evidence files; don't run new queries. Run the lint, then stop and tell me what moved where and anything that didn't fit.
