@@ -1,0 +1,9 @@
+Before anything else, run the test query from mx-pcode-navigator §2b. If the JDBC driver isn't found, stop and tell me which path you looked in.
+
+Then, in docs\pm\mr.md:
+
+1. Life cycle: remove the diagram and its caption, and replace them with one sentence describing the main path, built from the moves already in the diagram, with their rule IDs. Keep the status table.
+2. Known issues: below the table, add a note that accepted merge requests went back to Pending 329 times in the last 12 months, and that the team attributes it to a known bug where pressing some buttons makes other buttons appear that shouldn't. Say it was reported by the team and hasn't been traced in the code.
+3. Check a sample against the code. Don't rely on anything from earlier chats. Pick 40 sentences at random from the sections on raising, deciding, bulk changes, defect changes, emails and other systems (record the seed and the sentences). For each, open the rule it cites and the code that rule cites, and check that the sentence says exactly what the code does: every condition that matters to a PM, nothing more. Fix every wrong sentence and its rule.
+
+Run the lint, record the results in docs\progress.md, then stop and tell me how many of the 40 were wrong and in which sections.
