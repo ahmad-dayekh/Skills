@@ -1,0 +1,13 @@
+Before anything else, run the test query from mx-pcode-navigator §2b. If it fails, tell me the exact error and the path you used, then carry on without the database.
+
+The last check of docs\pm\mr.md reported these findings. Don't trust them: check each one against the code yourself first.
+1. The Merge Request form can't accept or refuse; its status is display-only. Super users can decide only in the Merge Request Smart Report, not on the merge request summary.
+2. The bulk accept background job runs the usual checks; only the bulk tools and the bulk move skip them.
+3. A re-issue never leads straight to "6- Accepted".
+4. The Create API runs the submission checks when it saves.
+
+For each finding that holds, find every statement in docs\pm\mr.md and docs\pm\glossary.md that still contradicts it, and fix it along with its rule. Where the guide links status moves to bulk updates by date, it must say they happened on the same day as a bulk update, not that the bulk update made them. If you disagree with a finding, change nothing for it and tell me why, with the code lines.
+
+Then check a fresh sample. Pick 40 statements at random from "In short", "Life cycle", "Emails" and "Raising a merge request" (record the seed and the statements). For each, open the rule it cites and the code that rule cites, and check that the statement says exactly what the code does: every condition that matters to a PM, nothing more. Fix every wrong one and its rule.
+
+Work without subagents and keep every query short. Run the lint, record the results in docs\progress.md, then stop and tell me which findings held, what you changed elsewhere, and how many of the 40 were wrong (major and minor), by section.
