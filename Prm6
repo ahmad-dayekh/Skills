@@ -1,0 +1,7 @@
+Before anything else, run the test query from mx-pcode-navigator §2b. If it fails, tell me the exact error and the path you used, then carry on without the database.
+
+In docs\pm\mr.md, check every statement in the sections that docs\progress.md doesn't list as checked line by line (everything except "In short", "Life cycle", "Emails" and "Raising a merge request"), then docs\pm\glossary.md. Don't rely on anything from earlier chats, and don't trust the rule text: for each statement, open the rule it cites and the code that rule cites, and check that the statement says exactly what the code does, with every condition that matters to a PM and nothing more. Fix every wrong statement and its rule, changing only what's wrong. If you change a rule that other sections also cite, fix those statements too. Leave the counts as they are. Where docs\evidence\mr.md has a screen test, it wins over your reading of the code; if they disagree, tell me.
+
+Work through it yourself, one section at a time, without subagents, and keep every query short. After each section, record in docs\progress.md how many statements you checked and which were wrong (major or minor), so we can stop and resume at any point.
+
+Run the lint, then stop and tell me, per section: statements checked, how many were wrong (major and minor), and which rules changed.
