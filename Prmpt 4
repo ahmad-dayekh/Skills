@@ -1,0 +1,12 @@
+Before anything else, run the test query from mx-pcode-navigator §2b. If it fails, tell me the exact error and the path you used, then carry on without the database.
+
+Then, in docs\pm\mr.md:
+
+1. Header: if it still says "Last verified", replace that line with "**Draft.** Last checked against the code on 27 Nov 2026. The RM team hasn't reviewed it yet." Put a blank ">" line between the header lines so each one shows on its own line. Keep the Tags line.
+
+2. Check every statement against the code, in this order: "In short", "Life cycle" (the sentence and every cell of the status table), "Emails", then "Raising a merge request". Don't rely on anything from earlier chats, and don't trust the rule text: for each statement, open the rule it cites and the code that rule cites, and check that the statement says exactly what the code does, with every condition that matters to a PM and nothing more. Fix every wrong statement and its rule, changing only what's wrong. If you change a rule that other sections also cite, fix those statements too. Leave the counts as they are.
+   - Where two items describe the same check (for example MR-061 and MR-008), merge them or say how they differ.
+   - In the "5- Pending" row, "135 came from no status" reads like the number of new merge requests. Check in docs\evidence\mr.md what that query counted, and reword the cell to say what it is.
+   - Work through it yourself, one section at a time, without subagents. After each section, record in docs\progress.md how many statements you checked and which were wrong (major or minor), so we can stop and resume at any point.
+
+Run the lint, then stop and tell me, per section: statements checked, how many were wrong (major and minor), and which rules changed.
